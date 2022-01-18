@@ -35,20 +35,38 @@ function builder() {
         console.error(err);
         return;
       }
-
-      for (let file of files) {
-        if (fs.lstatSync(path.join('posts', file)).isFile() && path.extname(file) === '.md') {
-          const result = md.render(fs.readFileSync(path.join('posts', file)).toString());
-          fs.writeFile(`${path.basename(file, path.extname(file))}.html`, result, (err) => {
-            if (err) {
-              console.error(err);
-              return;
-            }
-          });
-        }
-      }
+      convertMdFilesToHTML(files);
     });
   }
+}
+
+function convertMdFilesToHTML(files, rootDir = 'posts') {
+  for (let file of files) {
+    if (fs.lstatSync(path.join(rootDir, file)).isFile() && path.extname(file) === '.md') {
+      const result = md.render(fs.readFileSync(path.join(rootDir, file)).toString());
+      // TODO: read and write via streams for better performance
+      fs.writeFile(`${path.basename(file, path.extname(file))}.html`, result, (err) => {
+        if (err) {
+          console.error(err);
+          return;
+        }
+      });
+    }
+  }
+}
+
+function watchDirectory(dir = 'posts') {
+  fs.watch(dir, (eventType, fileName) => {
+    console.log(eventType);
+
+    fs.readdir(dir, (err, files) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      convertMdFilesToHTML(files);
+    });
+  });
 }
 
 function serve() {
@@ -66,3 +84,4 @@ function serve() {
 generator();
 builder();
 serve();
+watchDirectory();
